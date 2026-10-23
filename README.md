@@ -1,3 +1,15 @@
+<p align="center">
+  <img src="custom_components/extended_web_search/brand/icon@2x.png" alt="Extended Web Search icon" width="128">
+</p>
+
+<p align="center">
+  <a href="https://github.com/Xiphiass/extended-web-search/releases"><img src="https://img.shields.io/github/v/release/Xiphiass/extended-web-search" alt="Release"></a>
+  <a href="https://github.com/Xiphiass/extended-web-search/actions/workflows/validate.yml"><img src="https://github.com/Xiphiass/extended-web-search/actions/workflows/validate.yml/badge.svg" alt="Validate"></a>
+  <a href="https://hacs.xyz/docs/faq/custom_repositories/"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS Custom"></a>
+  <img src="https://img.shields.io/badge/Home%20Assistant-2025.8%2B-18BCF2?logo=homeassistant&logoColor=white" alt="Home Assistant 2025.8+">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Xiphiass/extended-web-search" alt="License: MIT"></a>
+</p>
+
 # Extended Web Search for Home Assistant
 
 A custom Home Assistant integration that provides **extended web search** capabilities to the LLM integration. Unlike basic search tools that only return snippets from search metadata, this integration **fetches the actual content from result web pages** and provides the full extracted text to your LLM.
@@ -21,7 +33,8 @@ This two-step approach (search + fetch content) gives the LLM significantly more
 ## Requirements
 
 - A running [SearXNG](https://github.com/searxng/searxng-docker) instance with JSON responses enabled
-- Home Assistant 2025.8 or newer
+- Home Assistant 2025.8 or newer. The integration's own icon shows from Home Assistant 2026.3 on, which loads brand images shipped with custom integrations.
+- A conversation agent integration that supports LLM APIs (e.g. OpenAI, Ollama, Google Generative AI, Anthropic)
 
 ### SearXNG Configuration
 
@@ -36,19 +49,26 @@ search:
 
 ## Installation
 
+### HACS (recommended)
+
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Xiphiass&repository=extended-web-search&category=integration)
+
+Or add it by hand:
+
+1. Make sure [HACS](https://hacs.xyz/) is installed in your Home Assistant instance.
+2. In HACS, click **⋮** (three dots, top right) → **Custom repositories**.
+3. Paste `https://github.com/Xiphiass/extended-web-search`, select **Integration** as the type and click **Add**.
+4. Search for **Extended Web Search** and click **Download**.
+5. Restart Home Assistant.
+
 ### Manual Install
 
-1. Copy the `custom_components/extended_web_search` folder into your Home Assistant `custom_components` directory.
+1. Download the [latest release](https://github.com/Xiphiass/extended-web-search/releases/latest) and copy the `custom_components/extended_web_search` folder into your Home Assistant `custom_components` directory.
 2. Restart Home Assistant.
 
-### HACS (Custom Repository)
-
-1. In HACS, go to **Integrations** → **⋮** (three dots) → **Custom repositories**.
-2. Add this repository URL and select **Integration** as the category.
-3. Click **Install** on the "Extended Web Search" integration.
-4. Restart Home Assistant.
-
 ## Configuration
+
+[![Open your Home Assistant instance and start setting up Extended Web Search.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=extended_web_search)
 
 1. Go to **Settings** → **Devices & Services**.
 2. Click **Add Integration** and search for **Extended Web Search**.
@@ -122,9 +142,23 @@ If your conversation agent can also control your home (the **Assist** API is ena
 | Dedicated URL fetching tool | ❌ | ✅ (`open_url`) |
 | Content extraction | Metadata only | Full HTML → text via BeautifulSoup |
 
-## License
+## Troubleshooting
 
-MIT
+To see what the integration does (search queries, fetched URLs and pages that failed to load), enable debug logging from the integration's page (**⋮** → **Enable debug logging**), or in `configuration.yaml`:
+
+```yaml
+logger:
+  logs:
+    custom_components.extended_web_search: debug
+```
+
+Bugs and feature requests go to the [issue tracker](https://github.com/Xiphiass/extended-web-search/issues).
+
+## Removal
+
+1. Disable **Extended Web Search** in your conversation agent's LLM API options.
+2. Go to **Settings** → **Devices & Services**, open **Extended Web Search** and delete the entry.
+3. If installed via HACS, remove it in HACS too, then restart Home Assistant.
 
 ## Development
 
@@ -136,3 +170,7 @@ pytest
 ```
 
 CI runs these together with `hassfest` and the HACS validation action.
+
+## License
+
+[MIT](LICENSE)
