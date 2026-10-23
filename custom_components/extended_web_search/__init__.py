@@ -2,40 +2,47 @@
 
 from __future__ import annotations
 
-import logging
+from dataclasses import dataclass
 
+import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import llm
 
-from .const import ADDON_NAME, DOMAIN
-from .llm_api import cleanup_api, setup_api
+from .const import DOMAIN
+from .llm_api import ExtendedWebSearchAPI
+from .web_content import create_fetch_session
 
 __all__ = ["DOMAIN"]
 
-_LOGGER = logging.getLogger(__name__)
 
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+@dataclass
+class RuntimeData:
+    """Data held while the config entry is loaded."""
 
-
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up the Extended Web Search integration."""
-    hass.data.setdefault(DOMAIN, {})
-    return True
+    fetch_session: aiohttp.ClientSession
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+type ExtendedWebSearchConfigEntry = ConfigEntry[RuntimeData]
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ExtendedWebSearchConfigEntry
+) -> bool:
     """Set up Extended Web Search from a config entry."""
-    _LOGGER.info("Setting up %s for entry: %s", ADDON_NAME, entry.entry_id)
-    config = {**entry.data, **(entry.options or {})}
-    await setup_api(hass, config)
-    _LOGGER.info("%s successfully set up", ADDON_NAME)
+    fetch_session = create_fetch_session()
+    entry.runtime_data = RuntimeData(fetch_session=fetch_session)
+    entry.async_on_unload(fetch_session.close)
+
+    config = {**entry.data, **entry.options}
+    entry.async_on_unload(
+        llm.async_register_api(hass, ExtendedWebSearchAPI(hass, config, fetch_session))
+    )
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, entry: ExtendedWebSearchConfigEntry
+) -> bool:
     """Unload a config entry."""
-    _LOGGER.info("Unloading %s for entry: %s", ADDON_NAME, entry.entry_id)
-    await cleanup_api(hass)
-    _LOGGER.info("%s successfully unloaded", ADDON_NAME)
     return True

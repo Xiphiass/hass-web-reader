@@ -14,3 +14,17 @@ CONF_REQUEST_TIMEOUT = "request_timeout"
 DEFAULT_NUM_RESULTS = 5
 DEFAULT_MAX_CONTENT_LENGTH = 8000
 DEFAULT_REQUEST_TIMEOUT = 10
+
+# Maximum number of bytes downloaded from a single page
+MAX_DOWNLOAD_BYTES = 2_000_000
+
+# Maximum number of redirects followed when fetching a page
+MAX_REDIRECTS = 5
+
+# Search results requested from SearXNG per wanted result, so failed fetches
+# can be replaced by the next candidate
+CANDIDATE_FACTOR = 2
+
+# Time ranges and categories accepted by the search_web tool
+TIME_RANGES = ["day", "week", "month", "year"]
+CATEGORIES = ["general", "news", "science", "it"]

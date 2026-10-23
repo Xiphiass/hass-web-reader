@@ -2,37 +2,49 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import re
-from html import unescape
-from urllib.parse import urlparse
+import socket
+from typing import Any
+from urllib.parse import urljoin, urlparse
 
+import aiohttp
+from aiohttp.abc import AbstractResolver, ResolveResult
+from aiohttp.resolver import DefaultResolver
 from bs4 import BeautifulSoup
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.core import HomeAssistant
+
+from .const import MAX_DOWNLOAD_BYTES, MAX_REDIRECTS
 
 _LOGGER = logging.getLogger(__name__)
 
-# Tags that typically contain the main content
-CONTENT_TAGS = ["article", "main", "[role='main']"]
+USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+)
+
+HTML_CONTENT_TYPES = ("text/html", "application/xhtml+xml")
+
+# Elements that contain the main content, in order of preference
+CONTENT_SELECTORS = ["main", "[role='main']"]
 
 # Tags to remove as they don't contain useful content
 REMOVE_TAGS = [
     "script",
     "style",
+    "template",
     "nav",
-    "header",
-    "footer",
     "aside",
     "noscript",
     "iframe",
     "svg",
-    "form",
     "button",
     "input",
     "select",
     "textarea",
-    "figure",
     "img",
+    "picture",
     "video",
     "audio",
     "canvas",
@@ -41,115 +53,213 @@ REMOVE_TAGS = [
     "embed",
 ]
 
+# Site-wide chrome; only removed when not part of the main content
+LAYOUT_TAGS = ["header", "footer"]
 
-def _extract_text(html_content: str, max_length: int) -> str:
-    """Extract readable text from HTML content."""
-    soup = BeautifulSoup(html_content, "html.parser")
 
-    # Remove unwanted tags
-    for tag_name in REMOVE_TAGS:
-        for tag in soup.find_all(tag_name):
+class DisallowedAddressError(OSError):
+    """Raised when a host resolves to a non-public address."""
+
+
+def is_public_ip(address: str) -> bool:
+    """Return True if the address is publicly routable."""
+    try:
+        ip = ipaddress.ip_address(address.split("%", 1)[0])
+    except ValueError:
+        return False
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return ip.is_global and not ip.is_multicast
+
+
+class PublicOnlyResolver(AbstractResolver):
+    """Resolver that refuses hostnames resolving to non-public addresses.
+
+    Checking at resolve time (rather than before the request) also covers
+    redirects and DNS rebinding, because aiohttp connects to exactly the
+    addresses returned here.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the resolver."""
+        self._resolver = DefaultResolver()
+
+    async def resolve(
+        self, host: str, port: int = 0, family: socket.AddressFamily = socket.AF_INET
+    ) -> list[ResolveResult]:
+        """Resolve a host and reject any non-public result."""
+        results = await self._resolver.resolve(host, port, family)
+        for result in results:
+            if not is_public_ip(result["host"]):
+                raise DisallowedAddressError(
+                    f"{host} resolves to non-public address {result['host']}"
+                )
+        return results
+
+    async def close(self) -> None:
+        """Close the resolver."""
+        await self._resolver.close()
+
+
+def create_fetch_session() -> aiohttp.ClientSession:
+    """Create the session used to fetch untrusted web pages."""
+    return aiohttp.ClientSession(
+        connector=aiohttp.TCPConnector(resolver=PublicOnlyResolver()),
+        headers={"User-Agent": USER_AGENT},
+    )
+
+
+def validate_url(url: str) -> str | None:
+    """Return an error message if the URL may not be fetched, else None.
+
+    Literal IP addresses bypass the resolver, so they are checked here.
+    """
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+    except ValueError:
+        return "Invalid URL"
+
+    if parsed.scheme not in ("http", "https"):
+        return "Only http and https URLs are supported"
+    if not hostname:
+        return "Invalid URL"
+
+    try:
+        ipaddress.ip_address(hostname.split("%", 1)[0])
+    except ValueError:
+        return None  # A hostname; checked by PublicOnlyResolver
+    if not is_public_ip(hostname):
+        return "Access to private or local network addresses is not allowed"
+    return None
+
+
+def _decompose_outside_content(soup: BeautifulSoup) -> None:
+    """Remove noise tags, keeping headers/footers inside articles."""
+    for tag in soup.find_all(REMOVE_TAGS):
+        tag.decompose()
+    for tag in soup.find_all(LAYOUT_TAGS):
+        if tag.find_parent(["article", "main"]) is None:
             tag.decompose()
 
-    # Try to find main content area first
-    main_content = None
-    for selector in CONTENT_TAGS:
-        if selector.startswith("["):
-            main_content = soup.select_one(selector)
-        else:
-            main_content = soup.find(selector)
-        if main_content:
+
+def extract_text(raw: bytes, encoding: str | None, max_length: int) -> str:
+    """Extract readable text from HTML content.
+
+    CPU bound; run in an executor.
+    """
+    soup = BeautifulSoup(raw, "html.parser", from_encoding=encoding)
+    _decompose_outside_content(soup)
+
+    target = None
+    for selector in CONTENT_SELECTORS:
+        if target := soup.select_one(selector):
             break
+    if target is None:
+        # A single article is the main content; several are usually a listing
+        articles = soup.find_all("article")
+        if len(articles) == 1:
+            target = articles[0]
+    if target is None:
+        target = soup.body or soup
 
-    target = main_content if main_content else soup.body if soup.body else soup
-
-    # Extract text
     text = target.get_text(separator="\n")
 
-    # Clean up whitespace
-    text = unescape(text)
-    text = re.sub(r"<[^>]+>", "", text)
+    # Collapse runs of spaces/tabs on the same line
+    text = re.sub(r"[^\S\n]+", " ", text)
     # Collapse multiple blank lines into one
     text = re.sub(r"\n\s*\n+", "\n\n", text)
-    # Collapse multiple spaces on same line
-    text = re.sub(r"[^\S\n]+", " ", text)
     text = text.strip()
 
     if len(text) > max_length:
-        text = text[:max_length] + "\n\n[Content truncated]"
-
+        text = text[:max_length]
     return text
 
 
-def _validate_url(url: str) -> bool:
-    """Validate a URL to prevent SSRF attacks."""
-    try:
-        parsed = urlparse(url)
-    except ValueError:
-        return False
+async def _download(
+    session: aiohttp.ClientSession, url: str, timeout: aiohttp.ClientTimeout
+) -> tuple[str, bytes, str | None] | dict[str, Any]:
+    """Download a page, following and validating redirects manually.
 
-    if parsed.scheme not in ("http", "https"):
-        return False
+    Returns (final_url, body, charset) or an error dict.
+    """
+    for _ in range(MAX_REDIRECTS + 1):
+        if error := validate_url(url):
+            return {"error": error}
 
-    hostname = parsed.hostname
-    if not hostname:
-        return False
-
-    # Block private/internal network ranges
-    # Allow localhost/private IPs only for SearXNG (validated separately)
-    return True
-
-
-async def fetch_page_content(
-    hass,
-    url: str,
-    max_length: int,
-    timeout: int,
-) -> dict:
-    """Fetch a URL and return extracted text content."""
-    if not _validate_url(url):
-        return {"url": url, "error": "Invalid or disallowed URL"}
-
-    session = async_get_clientsession(hass)
-
-    try:
         async with session.get(
             url,
             timeout=timeout,
             headers={
-                "User-Agent": "Mozilla/5.0 (compatible; HomeAssistant ExtendedWebSearch)",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5",
                 "Accept-Language": "en-US,en;q=0.5",
             },
-            allow_redirects=True,
-            max_redirects=5,
+            allow_redirects=False,
         ) as resp:
+            if resp.status in (301, 302, 303, 307, 308):
+                location = resp.headers.get("Location")
+                if not location:
+                    return {"error": f"HTTP {resp.status} without Location"}
+                url = urljoin(url, location)
+                continue
+
             if resp.status != 200:
-                return {
-                    "url": url,
-                    "error": f"HTTP {resp.status}",
-                }
+                return {"error": f"HTTP {resp.status}"}
 
-            content_type = resp.headers.get("Content-Type", "")
-            if "text/html" not in content_type and "application/xhtml" not in content_type:
-                return {
-                    "url": url,
-                    "error": f"Non-HTML content type: {content_type}",
-                }
+            content_type = resp.headers.get("Content-Type", "").lower()
+            if not content_type.startswith(HTML_CONTENT_TYPES):
+                return {"error": f"Non-HTML content type: {content_type or 'unknown'}"}
 
-            html_content = await resp.text()
-            text = _extract_text(html_content, max_length)
+            if (resp.content_length or 0) > MAX_DOWNLOAD_BYTES:
+                # Still read the start; it usually holds the content
+                _LOGGER.debug("Truncating large page %s", url)
 
-            if not text:
-                return {"url": url, "error": "No text content extracted"}
+            body = bytearray()
+            async for chunk in resp.content.iter_chunked(65536):
+                body += chunk
+                if len(body) >= MAX_DOWNLOAD_BYTES:
+                    del body[MAX_DOWNLOAD_BYTES:]
+                    break
 
-            return {
-                "url": url,
-                "content": text,
-            }
+            return url, bytes(body), resp.charset
 
+    return {"error": "Too many redirects"}
+
+
+async def fetch_page_content(
+    hass: HomeAssistant,
+    session: aiohttp.ClientSession,
+    url: str,
+    max_length: int,
+    timeout: float,
+) -> dict[str, Any]:
+    """Fetch a URL and return extracted text content.
+
+    Returns {"url", "content"} on success or {"url", "error"} on failure.
+    """
+    try:
+        result = await _download(session, url, aiohttp.ClientTimeout(total=timeout))
     except TimeoutError:
         return {"url": url, "error": "Request timed out"}
-    except Exception as e:
-        _LOGGER.warning("Error fetching %s: %s", url, e)
-        return {"url": url, "error": f"Failed to fetch: {e!s}"}
+    except aiohttp.ClientConnectorError as err:
+        # aiohttp wraps resolver errors; unwrap to report blocked addresses
+        if isinstance(err.os_error, DisallowedAddressError):
+            return {
+                "url": url,
+                "error": "Access to private or local network addresses is not allowed",
+            }
+        _LOGGER.debug("Error fetching %s: %s", url, err)
+        return {"url": url, "error": f"Failed to fetch: {err!s}"}
+    except (aiohttp.ClientError, OSError, ValueError) as err:
+        _LOGGER.debug("Error fetching %s: %s", url, err)
+        return {"url": url, "error": f"Failed to fetch: {err!s}"}
+
+    if isinstance(result, dict):
+        return {"url": url, **result}
+
+    final_url, body, charset = result
+    text = await hass.async_add_executor_job(extract_text, body, charset, max_length)
+    if not text:
+        return {"url": final_url, "error": "No text content extracted"}
+
+    return {"url": final_url, "content": text}
