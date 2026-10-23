@@ -2,6 +2,7 @@ name: Validate
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -17,6 +18,8 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # No brand icon yet; remove once brand/icon.png is added
+          ignore: brands
 
   tests:
     runs-on: ubuntu-latest
