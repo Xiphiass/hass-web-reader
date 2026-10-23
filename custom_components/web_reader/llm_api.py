@@ -1,4 +1,4 @@
-"""LLM API registration for Extended Web Search."""
+"""LLM API registration for Web Reader."""
 
 from __future__ import annotations
 
@@ -24,8 +24,8 @@ API_PROMPT = (
 )
 
 
-class ExtendedWebSearchAPI(llm.API):
-    """LLM API that provides extended web search tools."""
+class WebReaderAPI(llm.API):
+    """LLM API that provides web search and page reading tools."""
 
     def __init__(
         self,

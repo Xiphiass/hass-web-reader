@@ -1,1 +1,1 @@
-"""Tests for the Extended Web Search integration."""
+"""Tests for the Web Reader integration."""

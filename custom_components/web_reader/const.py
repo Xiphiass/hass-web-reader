@@ -1,8 +1,8 @@
-"""Constants for the Extended Web Search integration."""
+"""Constants for the Web Reader integration."""
 
-DOMAIN = "extended_web_search"
-ADDON_NAME = "Extended Web Search"
-API_NAME = "Extended Web Search"
+DOMAIN = "web_reader"
+ADDON_NAME = "Web Reader"
+API_NAME = "Web Reader"
 
 # Configuration keys
 CONF_SEARXNG_URL = "searxng_url"

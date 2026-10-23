@@ -1,8 +1,8 @@
-"""Fixtures for Extended Web Search tests."""
+"""Fixtures for Web Reader tests."""
 
 import pytest
 
-from custom_components.extended_web_search.const import (
+from custom_components.web_reader.const import (
     CONF_MAX_CONTENT_LENGTH,
     CONF_NUM_RESULTS,
     CONF_REQUEST_TIMEOUT,

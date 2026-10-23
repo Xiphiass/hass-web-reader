@@ -1,4 +1,4 @@
-"""Extended Web Search integration for Home Assistant."""
+"""Web Reader integration for Home Assistant."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
 from .const import DOMAIN
-from .llm_api import ExtendedWebSearchAPI
+from .llm_api import WebReaderAPI
 from .web_content import create_fetch_session
 
 __all__ = ["DOMAIN"]
@@ -23,26 +23,22 @@ class RuntimeData:
     fetch_session: aiohttp.ClientSession
 
 
-type ExtendedWebSearchConfigEntry = ConfigEntry[RuntimeData]
+type WebReaderConfigEntry = ConfigEntry[RuntimeData]
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ExtendedWebSearchConfigEntry
-) -> bool:
-    """Set up Extended Web Search from a config entry."""
+async def async_setup_entry(hass: HomeAssistant, entry: WebReaderConfigEntry) -> bool:
+    """Set up Web Reader from a config entry."""
     fetch_session = create_fetch_session()
     entry.runtime_data = RuntimeData(fetch_session=fetch_session)
     entry.async_on_unload(fetch_session.close)
 
     config = {**entry.data, **entry.options}
     entry.async_on_unload(
-        llm.async_register_api(hass, ExtendedWebSearchAPI(hass, config, fetch_session))
+        llm.async_register_api(hass, WebReaderAPI(hass, config, fetch_session))
     )
     return True
 
 
-async def async_unload_entry(
-    hass: HomeAssistant, entry: ExtendedWebSearchConfigEntry
-) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: WebReaderConfigEntry) -> bool:
     """Unload a config entry."""
     return True

@@ -11,7 +11,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
-from custom_components.extended_web_search.const import (
+from custom_components.web_reader.const import (
     CONF_NUM_RESULTS,
     CONF_SEARXNG_URL,
     DOMAIN,
