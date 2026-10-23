@@ -26,9 +26,7 @@ class RuntimeData:
 type WebReaderConfigEntry = ConfigEntry[RuntimeData]
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: WebReaderConfigEntry
-) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: WebReaderConfigEntry) -> bool:
     """Set up Web Reader from a config entry."""
     fetch_session = create_fetch_session()
     entry.runtime_data = RuntimeData(fetch_session=fetch_session)
@@ -41,8 +39,6 @@ async def async_setup_entry(
     return True
 
 
-async def async_unload_entry(
-    hass: HomeAssistant, entry: WebReaderConfigEntry
-) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: WebReaderConfigEntry) -> bool:
     """Unload a config entry."""
     return True
