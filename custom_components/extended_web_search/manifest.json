@@ -1,19 +1,14 @@
 {
   "domain": "extended_web_search",
   "name": "Extended Web Search",
-  "after_dependencies": [],
-  "codeowners": [],
+  "codeowners": ["@Xiphiass"],
   "config_flow": true,
-  "dependencies": [],
-  "documentation": "https://github.com/your-repo/extended-web-search",
+  "documentation": "https://github.com/Xiphiass/extended-web-search",
   "integration_type": "service",
-  "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/your-repo/extended-web-search/issues",
-  "loggers": [
-    "custom_components.extended_web_search"
-  ],
-  "requirements": [
-    "beautifulsoup4>=4.12.0"
-  ],
-  "version": "1.0.0"
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Xiphiass/extended-web-search/issues",
+  "loggers": ["custom_components.extended_web_search"],
+  "requirements": ["beautifulsoup4>=4.12.0"],
+  "single_config_entry": true,
+  "version": "1.1.0"
 }

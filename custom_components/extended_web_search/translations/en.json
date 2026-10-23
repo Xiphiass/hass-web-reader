@@ -8,13 +8,13 @@
           "searxng_url": "SearXNG Server URL",
           "num_results": "Number of search results",
           "max_content_length": "Max content length (characters)",
-          "request_timeout": "Request timeout (seconds)"
+          "request_timeout": "Time limit (seconds)"
         },
         "data_description": {
-          "searxng_url": "URL of your SearXNG server (e.g. http://192.168.1.100:8080)",
+          "searxng_url": "URL of your SearXNG server (e.g. http://192.168.1.100:8080). JSON output must be enabled.",
           "num_results": "Number of search result pages to fetch content from",
-          "max_content_length": "Maximum total characters of page content to return to the LLM",
-          "request_timeout": "Timeout in seconds for each HTTP request"
+          "max_content_length": "Maximum total characters of page content returned to the LLM per tool call. Roughly 4 characters are one token.",
+          "request_timeout": "Overall time limit for one search, including fetching all pages"
         }
       }
     },
@@ -22,7 +22,9 @@
       "single_instance_allowed": "Only a single instance of Extended Web Search is allowed."
     },
     "error": {
-      "url_required": "SearXNG server URL is required."
+      "invalid_url": "Enter a full http:// or https:// URL.",
+      "cannot_connect": "Could not reach the SearXNG server.",
+      "json_disabled": "SearXNG did not return JSON. Enable the json format under search.formats in settings.yml."
     }
   },
   "options": {
@@ -34,15 +36,20 @@
           "searxng_url": "SearXNG Server URL",
           "num_results": "Number of search results",
           "max_content_length": "Max content length (characters)",
-          "request_timeout": "Request timeout (seconds)"
+          "request_timeout": "Time limit (seconds)"
         },
         "data_description": {
-          "searxng_url": "URL of your SearXNG server (e.g. http://192.168.1.100:8080)",
+          "searxng_url": "URL of your SearXNG server (e.g. http://192.168.1.100:8080). JSON output must be enabled.",
           "num_results": "Number of search result pages to fetch content from",
-          "max_content_length": "Maximum total characters of page content to return to the LLM",
-          "request_timeout": "Timeout in seconds for each HTTP request"
+          "max_content_length": "Maximum total characters of page content returned to the LLM per tool call. Roughly 4 characters are one token.",
+          "request_timeout": "Overall time limit for one search, including fetching all pages"
         }
       }
+    },
+    "error": {
+      "invalid_url": "Enter a full http:// or https:// URL.",
+      "cannot_connect": "Could not reach the SearXNG server.",
+      "json_disabled": "SearXNG did not return JSON. Enable the json format under search.formats in settings.yml."
     }
   }
 }
