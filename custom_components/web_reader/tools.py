@@ -1,4 +1,4 @@
-"""LLM tools for Extended Web Search."""
+"""LLM tools for Web Reader."""
 
 from __future__ import annotations
 
@@ -141,7 +141,7 @@ class SearchWebTool(llm.Tool):
         """Perform web search and fetch page content."""
         args = tool_input.tool_args
         query = args["query"]
-        _LOGGER.debug("Extended web search for: %s", query)
+        _LOGGER.debug("Web search for: %s", query)
 
         num_results = int(self.config[CONF_NUM_RESULTS])
         max_content_length = int(self.config[CONF_MAX_CONTENT_LENGTH])

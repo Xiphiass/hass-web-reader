@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configure Extended Web Search",
-        "description": "Set up the extended web search integration. This requires a running SearXNG instance.",
+        "title": "Configure Web Reader",
+        "description": "Set up Web Reader. This requires a running SearXNG instance.",
         "data": {
           "searxng_url": "SearXNG Server URL",
           "num_results": "Number of search results",
@@ -19,7 +19,7 @@
       }
     },
     "abort": {
-      "single_instance_allowed": "Only a single instance of Extended Web Search is allowed."
+      "single_instance_allowed": "Only a single instance of Web Reader is allowed."
     },
     "error": {
       "invalid_url": "Enter a full http:// or https:// URL.",
@@ -30,8 +30,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configure Extended Web Search",
-        "description": "Update the extended web search settings.",
+        "title": "Configure Web Reader",
+        "description": "Update the Web Reader settings.",
         "data": {
           "searxng_url": "SearXNG Server URL",
           "num_results": "Number of search results",

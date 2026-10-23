@@ -6,8 +6,8 @@ import aiohttp
 import pytest
 from aiohttp import web
 
-from custom_components.extended_web_search import web_content
-from custom_components.extended_web_search.web_content import (
+from custom_components.web_reader import web_content
+from custom_components.web_reader.web_content import (
     DisallowedAddressError,
     PublicOnlyResolver,
     extract_text,

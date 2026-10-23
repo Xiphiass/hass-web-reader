@@ -1,4 +1,4 @@
-"""Config flow for the Extended Web Search integration."""
+"""Config flow for the Web Reader integration."""
 
 from __future__ import annotations
 
@@ -109,8 +109,8 @@ async def validate_input(
     return data, {}
 
 
-class ExtendedWebSearchConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Extended Web Search."""
+class WebReaderConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for Web Reader."""
 
     VERSION = 1
 
@@ -137,13 +137,13 @@ class ExtendedWebSearchConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: ConfigEntry,
-    ) -> ExtendedWebSearchOptionsFlow:
+    ) -> WebReaderOptionsFlow:
         """Return the options flow."""
-        return ExtendedWebSearchOptionsFlow()
+        return WebReaderOptionsFlow()
 
 
-class ExtendedWebSearchOptionsFlow(OptionsFlowWithReload):
-    """Handle options flow for Extended Web Search."""
+class WebReaderOptionsFlow(OptionsFlowWithReload):
+    """Handle options flow for Web Reader."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

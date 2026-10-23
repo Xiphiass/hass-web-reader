@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import llm
 
-from custom_components.extended_web_search import tools
-from custom_components.extended_web_search.const import CONF_REQUEST_TIMEOUT
-from custom_components.extended_web_search.tools import (
+from custom_components.web_reader import tools
+from custom_components.web_reader.const import CONF_REQUEST_TIMEOUT
+from custom_components.web_reader.tools import (
     OpenUrlTool,
     SearchWebTool,
     allocate_budget,
